@@ -37,23 +37,8 @@ This project implements a full SPI communication protocol with a comprehensive t
 
 ## Testbench Architecture
 
-```
-┌─────────────┐
-│  Generator  │ ──────┐
-└─────────────┘       │
-                      ↓
-                 ┌─────────┐
-                 │ Mailbox │
-                 └─────────┘
-                      ↓
-┌─────────────┐  ┌─────────┐  ┌─────────────┐
-│   Driver    │→→│   DUT   │→→│   Monitor   │
-└─────────────┘  └─────────┘  └─────────────┘
-      ↓                              ↓
-      └──────────→ ┌─────────────┐ ←┘
-                   │ Scoreboard  │
-                   └─────────────┘
-```
+<img width="1024" height="559" alt="image_1ba5c318-c27b-442d-8b83-2696d26bc076" src="https://github.com/user-attachments/assets/865fdcb8-a0e7-4154-afd5-104e59de5a52" />
+
 
 ### Verification Components
 
