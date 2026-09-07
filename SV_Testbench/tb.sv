@@ -18,21 +18,20 @@ endclass
 class generator;
   
   transaction tr;             // Transaction object
-  mailbox #(transaction) mbx; // Mailbox for transactions
+  mailbox #(transaction) mbxgd; // Mailbox for transactions
   event done;                 // Done event
   int count = 0;              // Transaction count
-  event drvnext;              // Event to synchronize with driver
   event sconext;              // Event to synchronize with scoreboard
   
-  function new(mailbox #(transaction) mbx);
-    this.mbx = mbx;           // Initialize mailbox
+  function new(mailbox #(transaction) mbxgd);
+    this.mbxgd = mbxgd;           // Initialize mailbox
     tr = new();               // Create a new transaction
   endfunction
   
   task run();
     repeat(count) begin
-      assert(tr.randomize) else $error("[GEN] :Randomization Failed");
-      mbx.put(tr.copy);       // Put a copy of the transaction in the mailbox
+      assert(tr.randomize()) else $error("[GEN] :Randomization Failed");
+      mbxgd.put(tr.copy());       // Put a copy of the transaction in the mailbox
       $display("[GEN] : din : %0d", tr.din);
       @(sconext);             // Wait for the scoreboard synchronization event
     end
@@ -46,14 +45,13 @@ class driver;
   
   virtual spi_if vif;         // Virtual interface
   transaction tr;             // Transaction object
-  mailbox #(transaction) mbx; // Mailbox for transactions
+  mailbox #(transaction) mbxgd; // Mailbox for transactions
   mailbox #(bit [11:0]) mbxds; // Mailbox for data output to monitor
-  event drvnext;              // Event to synchronize with generator
   
   bit [11:0] din;             // Data input
  
-  function new(mailbox #(bit [11:0]) mbxds, mailbox #(transaction) mbx);
-    this.mbx = mbx;           // Initialize mailboxes
+  function new(mailbox #(bit [11:0]) mbxds, mailbox #(transaction) mbxgd);
+    this.mbxgd = mbxgd;           // Initialize mailboxes
     this.mbxds = mbxds;
   endfunction
   
@@ -71,7 +69,7 @@ class driver;
   
   task run();
     forever begin
-      mbx.get(tr);            // Get a transaction from the mailbox
+      mbxgd.get(tr);            // Get a transaction from the mailbox
       vif.newd <= 1'b1;       // Set new data flag
       vif.din <= tr.din;      // Set data input
       mbxds.put(tr.din);      // Put data in the mailbox for the monitor
@@ -89,12 +87,12 @@ endclass
 ////////////////Monitor Class
 class monitor;
   transaction tr;             // Transaction object
-  mailbox #(bit [11:0]) mbx; // Mailbox for data output
+  mailbox #(bit [11:0]) mbxms; // Mailbox for data output
   
   virtual spi_if vif;         // Virtual interface
   
-  function new(mailbox #(bit [11:0]) mbx);
-    this.mbx = mbx;           // Initialize the mailbox
+  function new(mailbox #(bit [11:0]) mbxms);
+    this.mbxms = mbxms;           // Initialize the mailbox
   endfunction
   
   task run();
@@ -105,7 +103,7 @@ class monitor;
       tr.dout = vif.dout;     // Record data output
       @(posedge vif.sclk);
       $display("[MON] : DATA SENT : %0d", tr.dout);
-      mbx.put(tr.dout);       // Put data in the mailbox
+      mbxms.put(tr.dout);       // Put data in the mailbox
     end  
     
   endtask
@@ -150,7 +148,6 @@ class environment;
     monitor mon;                   // Monitor object
     scoreboard sco;                 // Scoreboard object
     
-    event nextgd;                   // Event for generator to driver communication
     event nextgs;                   // Event for generator to scoreboard communication
   
     mailbox #(transaction) mbxgd;   // Mailbox for generator to driver communication
@@ -176,8 +173,6 @@ class environment;
     gen.sconext = nextgs;           // Set synchronization events
     sco.sconext = nextgs;
     
-    gen.drvnext = nextgd;
-    drv.drvnext = nextgd;
   endfunction
   
   task pre_test();
